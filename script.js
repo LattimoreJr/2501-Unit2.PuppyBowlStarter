@@ -1,11 +1,24 @@
 //If you would like to, you can create a variable to store the API_URL here.
 //This is optional. if you do not want to, skip this and move on.
-
-
+const puppyUrl = "https://fsa-puppy-bowl.herokuapp.com/api/2501-ftb-et-web-am-PUPPIES/players"
 /////////////////////////////
 /*This looks like a good place to declare any state or global variables you might need*/
-
+let players = []
 ////////////////////////////
+const puppyRoster = document.querySelector("#puppyRoster")
+const singlePuppy = document.querySelector("#singlePuppy")
+const newPlayerForm = document.querySelector("#newPlayerForm")
+window.addEventListener("hashchange", () => {
+    render()
+})
+
+newPlayerForm.addEventListener("submit", async (event) => {
+  event.preventDefault()
+  const addNewPlayer = {
+    name: event.target.name.value,
+    breed: event.target.breed.value
+  } 
+})
 
 
 
@@ -16,6 +29,9 @@
  */
 const fetchAllPlayers = async () => {
   //TODO
+    const response = await fetch(puppyUrl)
+    const data = await response.json()
+    return data.data.players
 
 };
 
@@ -25,8 +41,14 @@ const fetchAllPlayers = async () => {
  * @param {number} playerId
  * @returns {Object} the player object
  */
-const fetchSinglePlayer = async (playerId) => {
+const fetchSinglePlayer = async (singlePlayer) => {
   //TODO
+
+    const playerData = await fetch(`https://fsa-puppy-bowl.herokuapp.com/api/2501-ftb-et-web-am-PUPPIES/players/${singlePlayer.id}`)
+    const singlePlayerData = await playerData.json()
+    console.log(singlePlayerData)
+    renderSinglePlayer(singlePlayerData)
+
 };
 
 /**
@@ -48,8 +70,24 @@ const fetchSinglePlayer = async (playerId) => {
  * @returns {Object} the new player object added to database
  */
 
-const addNewPlayer = async (newPlayer) => {
+const addNewPlayer = async (addNewPlayer) => {
   //TODO
+  try {
+    repsonse = await fetch(puppyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(newPlayer)
+    })
+    const json = await response.json()
+    render()
+    partyForm.reset()
+    
+  } catch (error) {
+    console.error(error)
+  }
+      
 };
 
 /**
@@ -68,9 +106,22 @@ const addNewPlayer = async (newPlayer) => {
 
 const removePlayer = async (playerId) => {
   //TODO
+    try {
+      await fetch(`https://fsa-puppy-bowl.herokuapp.com/api/2501-ftb-et-web-am-PUPPIES/players/${playerId}`,{
+        method: "DELETE"
+      })
+      players.splice(idx,1)
+    } catch (error) {
+        console.error(error)
+    }
 
 };
 
+puppyRoster.addEventListener("click", (event) => {
+  if(event.target.classList.contains("deleteButton")){
+    removePlayer(event.target.data.player.id)
+  }
+})
 /**
  * Updates html to display a list of all players or a single player page.
  *
@@ -89,10 +140,27 @@ const removePlayer = async (playerId) => {
  *    from the database and our current view without having to refresh
  *
  */
-const render = () => {
+const render = async () => {
   // TODO
+    const rosterList = players.map((player) => {
+      return `
+        <a href=#${player.name}>${player.name}</a>
+      `
+    })
+    puppyRoster.innerHTML = rosterList.join("")
 
-  
+
+    const name = window.location.hash.slice(1)
+    console.log(name)
+ 
+    const singlePlayer = players.find((player) => {
+        return player.name === name
+    })
+
+    puppyRoster.innerHTML = singlePlayer ? fetchSinglePlayer(singlePlayer) : `<div id="rosterContainer">${rosterList.join("")}`
+
+   
+
 };
 
 /**
@@ -109,8 +177,20 @@ const render = () => {
  * The detailed page of the single player should no longer be shown.
  * @param {Object} player an object representing a single player
  */
-const renderSinglePlayer = (player) => {
+const renderSinglePlayer = (singlePlayerData) => {
   // TODO
+  puppyRoster.innerHTML = `
+    <h2>Selected Player</h2>
+    <h2>${singlePlayerData.data.player.name}</h2>
+    <h3>Breed:</h3>
+    <p>${singlePlayerData.data.player.breed}</p>
+    <br>
+    <h3>Status:</h3>
+    <p>${singlePlayerData.data.player.status}</p>
+    <button class="deleteButton" id="${singlePlayerData.data.player.id}">Delete</button>
+    <br>
+    <a href=#>Back to Puppy Roster</a>
+`
 
 };
 
@@ -121,11 +201,14 @@ const renderSinglePlayer = (player) => {
  */
 const init = async () => {
   //Before we render, what do we always need...?
+      const playerData =  await fetchAllPlayers()
+      players = playerData
+      render()
 
-  render();
 
 };
 
+init()
 /**THERE IS NO NEED TO EDIT THE CODE BELOW =) **/
 
 // This script will be run using Node when testing, so here we're doing a quick
